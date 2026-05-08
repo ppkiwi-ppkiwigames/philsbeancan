@@ -1,0 +1,950 @@
+<!doctype html><html><head></head><body><!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>TRAPPED</title>
+
+	<style>
+		body {
+			margin: 0;
+			overflow: hidden;
+			background: black;
+			font-family: Arial;
+			color: white;
+		}
+
+		canvas {
+			display: none;
+			background: #050505;
+		}
+
+		#menu {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			text-align: center;
+			z-index: 10;
+		}
+
+		h1 {
+			font-size: 80px;
+			margin: 0;
+			color: cyan;
+			text-shadow: 0 0 30px cyan;
+		}
+
+		input {
+			padding: 14px;
+			width: 260px;
+			font-size: 20px;
+			background: black;
+			color: white;
+			border: 2px solid cyan;
+			outline: none;
+			text-align: center;
+			margin-top: 15px;
+		}
+
+		button {
+			padding: 14px 30px;
+			font-size: 20px;
+			margin-top: 15px;
+			background: black;
+			color: cyan;
+			border: 2px solid cyan;
+			cursor: pointer;
+			box-shadow: 0 0 20px cyan;
+		}
+
+		#ui {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			pointer-events: none;
+		}
+
+		#info {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			font-size: 18px;
+			color: cyan;
+			text-shadow: 0 0 10px cyan;
+		}
+
+		#topLevel {
+			position: absolute;
+			top: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			font-size: 36px;
+			font-weight: bold;
+			color: yellow;
+			text-shadow: 0 0 20px yellow;
+		}
+
+		#leaderboard {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			width: 230px;
+			background: rgba(0, 0, 0, .8);
+			border: 2px solid cyan;
+			padding: 10px;
+			box-shadow: 0 0 20px cyan;
+			pointer-events: auto;
+		}
+
+		#leaderboard h2 {
+			margin: 0;
+			text-align: center;
+			color: cyan;
+		}
+
+		#chatBox {
+			position: absolute;
+			bottom: 10px;
+			left: 10px;
+			width: 320px;
+			height: 220px;
+			background: rgba(0, 0, 0, .8);
+			border: 2px solid cyan;
+			box-shadow: 0 0 20px cyan;
+			display: flex;
+			flex-direction: column;
+			pointer-events: auto;
+		}
+
+		#messages {
+			flex: 1;
+			overflow-y: auto;
+			padding: 8px;
+			font-size: 15px;
+		}
+
+		#chatInput {
+			border: none;
+			border-top: 2px solid cyan;
+			background: black;
+			color: white;
+			padding: 10px;
+			outline: none;
+			font-size: 15px;
+		}
+
+		.message {
+			margin-bottom: 6px;
+			word-wrap: break-word;
+		}
+
+		.name {
+			color: cyan;
+			font-weight: bold;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="menu">
+
+		<h1>TRAPPED</h1>
+
+		<p>by Math Time</p>
+
+		<input id="username" placeholder="Enter Username">
+
+		<br>
+
+		<button onclick="startGame()">PLAY</button>
+
+	</div>
+
+	<canvas id="game"></canvas>
+
+	<div id="ui">
+
+		<div id="info"></div>
+
+		<div id="topLevel">
+			LEVEL 1
+		</div>
+
+		<div id="leaderboard">
+
+			<h2>PLAYERS</h2>
+
+			<div id="leaderboardPlayers"></div>
+
+		</div>
+
+		<div id="chatBox">
+
+			<div id="messages"></div>
+
+			<input id="chatInput" placeholder="Type message and press enter...">
+
+</div>
+
+		</div>
+
+		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+		<script>
+			// FIREBASE
+
+firebase.initializeApp({
+
+apiKey:"AIzaSyBX-w7jy_QykOkZ6wP9KqUGC8Fnru6jrV8",
+authDomain:"mathtime-a13f5.firebaseapp.com",
+databaseURL:"https://mathtime-a13f5-default-rtdb.firebaseio.com",
+projectId:"mathtime-a13f5"
+
+});
+
+const db=firebase.database();
+
+// CANVAS
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+
+// GAME STATE
+
+let state="hub";
+
+// CAMERA
+
+let cam={
+x:0,
+y:0
+};
+
+// PLAYER
+
+let player={
+
+id:Math.random().toString(36).substr(2,9),
+
+name:"Player",
+
+x:1500,
+y:1500,
+
+vx:0,
+vy:0,
+
+speed:0.5,
+
+maxSpeed:6,
+
+friction:0.86,
+
+gravity:0.22,
+
+energy:100,
+
+level:1,
+
+xp:0,
+
+color:"#00ffff"
+
+};
+
+// OTHER PLAYERS
+
+let players={};
+
+// INPUT
+
+let keys={};
+
+// PARTICLES
+
+let particles=[];
+
+// CHAT
+
+const chatInput=document.getElementById("chatInput");
+const messagesDiv=document.getElementById("messages");
+
+// LEVELS
+
+let stage=1;
+
+let currentPortal=null;
+
+let enemies=[];
+
+// PORTALS
+
+let portals=[
+
+{
+x:900,
+y:1500,
+color:"lime",
+name:"Easy",
+stages:10
+},
+
+{
+x:1500,
+y:900,
+color:"orange",
+name:"Medium",
+stages:25
+},
+
+{
+x:2100,
+y:1500,
+color:"red",
+name:"Nightmare",
+stages:50
+}
+
+];
+
+// INPUT
+
+onkeydown=e=>{
+
+keys[e.key.toLowerCase()]=true;
+
+};
+
+onkeyup=e=>{
+
+keys[e.key.toLowerCase()]=false;
+
+};
+
+// START GAME
+
+function startGame(){
+
+let username=document.getElementById("username").value.trim();
+
+if(username.length<1){
+username="Player";
+}
+
+player.name=username;
+
+document.getElementById("menu").style.display="none";
+
+canvas.style.display="block";
+
+connectMultiplayer();
+
+setupChat();
+
+loop();
+
+}
+
+// CHAT
+
+function setupChat(){
+
+chatInput.addEventListener("keydown",e=>{
+
+if(e.key==="Enter"){
+
+let text=chatInput.value.trim();
+
+if(text.length<1) return;
+
+db.ref("chat").push({
+
+name:player.name,
+
+message:text,
+
+time:Date.now()
+
+});
+
+chatInput.value="";
+
+}
+
+});
+
+db.ref("chat").limitToLast(30).on("value",snap=>{
+
+messagesDiv.innerHTML="";
+
+let data=snap.val();
+
+if(!data) return;
+
+Object.values(data).forEach(msg=>{
+
+let div=document.createElement("div");
+
+div.className="message";
+
+div.innerHTML=`<span class="name">${msg.name}:</span> ${msg.message}`;
+
+messagesDiv.appendChild(div);
+
+});
+
+messagesDiv.scrollTop=messagesDiv.scrollHeight;
+
+});
+
+}
+
+// MULTIPLAYER
+
+function connectMultiplayer(){
+
+const playerRef=db.ref("players/"+player.id);
+
+// REMOVE PLAYER ON LEAVE
+
+playerRef.onDisconnect().remove();
+
+window.addEventListener("beforeunload",()=>{
+
+playerRef.remove();
+
+});
+
+// UPDATE PLAYER
+
+setInterval(()=>{
+
+playerRef.set({
+
+name:player.name,
+
+x:player.x,
+y:player.y,
+
+color:player.color,
+
+level:player.level
+
+});
+
+},50);
+
+// LOAD PLAYERS
+
+db.ref("players").on("value",snap=>{
+
+players=snap.val()||{};
+
+updateLeaderboard();
+
+});
+
+}
+
+// LEADERBOARD
+
+function updateLeaderboard(){
+
+let html="";
+
+for(let id in players){
+
+let p=players[id];
+
+html+=`
+<div style="margin-top:6px;">
+${p.name} - Level ${p.level}
+</div>
+`;
+
+}
+
+document.getElementById("leaderboardPlayers").innerHTML=html;
+
+}
+
+// SMOOTH MOVEMENT
+
+function move(){
+
+// LEFT
+
+if(keys["a"]){
+
+player.vx-=player.speed;
+
+}
+
+// RIGHT
+
+if(keys["d"]){
+
+player.vx+=player.speed;
+
+}
+
+// LIMIT SPEED
+
+if(player.vx>player.maxSpeed){
+player.vx=player.maxSpeed;
+}
+
+if(player.vx<-player.maxSpeed){
+player.vx=-player.maxSpeed;
+}
+
+// BOOST
+
+if(keys["w"]&&player.energy>0){
+
+player.vy-=0.45;
+
+player.energy-=0.35;
+
+// PARTICLES
+
+particles.push({
+
+x:player.x,
+y:player.y+15,
+
+vx:(Math.random()-0.5)*3,
+vy:Math.random()*3,
+
+life:25,
+
+size:Math.random()*3+2
+
+});
+
+}
+
+// GRAVITY
+
+player.vy+=player.gravity;
+
+// FRICTION
+
+player.vx*=player.friction;
+
+// MAX FALL SPEED
+
+if(player.vy>6){
+player.vy=6;
+}
+
+// APPLY
+
+player.x+=player.vx;
+player.y+=player.vy;
+
+// ENERGY REGEN
+
+if(!keys["w"]&&player.energy<100){
+
+player.energy+=0.25;
+
+}
+
+// WALLS
+
+if(player.x<0){
+player.x=0;
+player.vx=0;
+}
+
+if(player.x>3000){
+player.x=3000;
+player.vx=0;
+}
+
+if(player.y<0){
+player.y=0;
+player.vy=0;
+}
+
+if(player.y>3000){
+player.y=3000;
+player.vy=0;
+}
+
+// CAMERA
+
+cam.x=player.x-canvas.width/2;
+cam.y=player.y-canvas.height/2;
+
+}
+
+// GRID
+
+function drawGrid(){
+
+for(let x=0;x<3000;x+=100){
+
+for(let y=0;y<3000;y+=100){
+
+ctx.strokeStyle="#111";
+
+ctx.strokeRect(x,y,100,100);
+
+}
+
+}
+
+}
+
+// HUB
+
+function drawHub(){
+
+drawGrid();
+
+ctx.fillStyle="#111";
+
+ctx.fillRect(1100,1100,800,800);
+
+ctx.strokeStyle="cyan";
+
+ctx.lineWidth=8;
+
+ctx.strokeRect(1100,1100,800,800);
+
+ctx.fillStyle="white";
+
+ctx.font="50px Arial";
+
+ctx.textAlign="center";
+
+ctx.fillText("HUB",1500,1180);
+
+// PORTALS
+
+for(let p of portals){
+
+ctx.fillStyle=p.color;
+
+ctx.beginPath();
+ctx.arc(p.x,p.y,45,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="white";
+
+ctx.font="22px Arial";
+
+ctx.fillText(p.name,p.x,p.y+80);
+
+ctx.fillText(p.stages+" Stages",p.x,p.y+105);
+
+if(dist(player.x,player.y,p.x,p.y)<50){
+
+startLevel(p);
+
+}
+
+}
+
+}
+
+// START LEVEL
+
+function startLevel(portal){
+
+state="level";
+
+currentPortal=portal;
+
+stage=1;
+
+player.x=200;
+player.y=1500;
+
+player.vx=0;
+player.vy=0;
+
+generateStage();
+
+}
+
+// GENERATE STAGE
+
+function generateStage(){
+
+enemies=[];
+
+for(let i=0;i<stage+4;i++){
+
+enemies.push({
+
+x:Math.random()*2500+200,
+y:Math.random()*2500+200,
+
+vx:(Math.random()-0.5)*4,
+vy:(Math.random()-0.5)*4,
+
+r:15
+
+});
+
+}
+
+}
+
+// LEVEL
+
+function drawLevel(){
+
+drawGrid();
+
+// FLOOR
+
+ctx.fillStyle="red";
+
+ctx.fillRect(0,2950,3000,50);
+
+// EXIT
+
+ctx.fillStyle="lime";
+
+ctx.fillRect(2850,0,150,3000);
+
+// ENEMIES
+
+for(let e of enemies){
+
+e.x+=e.vx;
+e.y+=e.vy;
+
+if(e.x<0||e.x>3000)e.vx*=-1;
+if(e.y<0||e.y>3000)e.vy*=-1;
+
+ctx.fillStyle="red";
+
+ctx.beginPath();
+ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+ctx.fill();
+
+if(dist(player.x,player.y,e.x,e.y)<25){
+
+returnHub();
+
+}
+
+}
+
+// NEXT STAGE
+
+if(player.x>2850){
+
+stage++;
+
+player.xp+=20;
+
+// LEVEL UP
+
+if(player.xp>=player.level*50){
+
+player.level++;
+
+player.xp=0;
+
+}
+
+// FINISH
+
+if(stage>currentPortal.stages){
+
+returnHub();
+
+return;
+
+}
+
+player.x=200;
+player.y=1500;
+
+generateStage();
+
+}
+
+// FALL
+
+if(player.y>2950){
+
+returnHub();
+
+}
+
+}
+
+// RETURN HUB
+
+function returnHub(){
+
+state="hub";
+
+player.x=1500;
+player.y=1500;
+
+player.vx=0;
+player.vy=0;
+
+}
+
+// PARTICLES
+
+function updateParticles(){
+
+for(let p of particles){
+
+p.x+=p.vx;
+p.y+=p.vy;
+
+p.life--;
+
+ctx.globalAlpha=p.life/25;
+
+ctx.fillStyle="orange";
+
+ctx.beginPath();
+ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+ctx.fill();
+
+ctx.globalAlpha=1;
+
+}
+
+particles=particles.filter(p=>p.life>0);
+
+}
+
+// DRAW PLAYER
+
+function drawPlayer(px,py,color,name,level){
+
+ctx.shadowBlur=20;
+ctx.shadowColor=color;
+
+ctx.fillStyle=color;
+
+ctx.beginPath();
+ctx.arc(px,py,15,0,Math.PI*2);
+ctx.fill();
+
+ctx.shadowBlur=0;
+
+ctx.fillStyle="white";
+
+ctx.font="16px Arial";
+
+ctx.textAlign="center";
+
+ctx.fillText(name,px,py-35);
+
+ctx.fillStyle="yellow";
+
+ctx.fillText("Lv."+level,px,py-18);
+
+}
+
+// DRAW PLAYERS
+
+function drawPlayers(){
+
+for(let id in players){
+
+let p=players[id];
+
+drawPlayer(
+
+p.x,
+p.y,
+
+p.color,
+
+p.name,
+
+p.level
+
+);
+
+}
+
+}
+
+// UI
+
+function drawUI(){
+
+document.getElementById("info").innerHTML=
+
+"Players Online: "+Object.keys(players).length+
+
+"<br>Stage: "+stage+
+
+"<br>Energy: "+Math.floor(player.energy)+
+
+"<br>XP: "+player.xp;
+
+document.getElementById("topLevel").innerHTML=
+
+"LEVEL "+player.level;
+
+}
+
+// LOOP
+
+function loop(){
+
+move();
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.save();
+
+ctx.translate(-cam.x,-cam.y);
+
+if(state==="hub"){
+drawHub();
+}
+
+if(state==="level"){
+drawLevel();
+}
+
+updateParticles();
+
+drawPlayers();
+
+ctx.restore();
+
+drawUI();
+
+requestAnimationFrame(loop);
+
+}
+
+// DISTANCE
+
+function dist(x1,y1,x2,y2){
+
+return Math.hypot(x1-x2,y1-y2);
+
+}
+
+		</script>
+
+</body>
+
+</html></body><html>
