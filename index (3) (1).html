@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAKED</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 5em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #0ff, 0 0 50px #0ff;
+            margin-bottom: 50px;
+        }
+
+        #links {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .link-button {
+            display: block;
+            text-decoration: none;
+            color: #ff00ff;
+            font-size: 1.5em;
+            text-align: center;
+            padding: 15px 25px;
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+        }
+
+        .link-button:hover {
+            color: #00ff00;
+            border-color: #00ff00;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            box-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>LEAKED</h1>
+
+    <div id="links">
+        <!-- Links will appear here -->
+    </div>
+
+    <script>
+        // Example links array
+        const links = [
+            { text: 'Dogeub', url: 'https://eeee.cool.qzz.io.cdn.cloudflare.net/' },
+            { text: 'UNBLOCKEDGG', url: 'https://htg5gy6fae.zite.so/' },
+            { text: 'CANABALT', url: 'https://canabalt.com/' },
+            { text: 'engineering', url: 'https://www.engineering.com/' },
+            { text: 'SANJIANIME', url: 'https://sanjianime.com/' },
+            { text: 'Kong Studios', url: 'https://kongstudios.gorillaz.com/' },
+            { text: 'Sound Trap', url: 'https://www.soundtrap.com/' },
+            { text: 'CODERSPACE', url: 'https://coderspace.io/en/tools/html-editor/' },
+            { text: 'SKIP UNBLOCKED LINK', url: 'https://math-games-4u.w3spaces.com' }
+        ];
+
+
+        const linksContainer = document.getElementById('links');
+
+        links.forEach(link => {
+            const a = document.createElement('a');
+            a.href = link.url;
+            a.textContent = link.text;
+            a.className = 'link-button';
+            a.target = '_blank'; // Opens in new tab
+            linksContainer.appendChild(a);
+        });
+    </script>
+</body>
+</html>
